@@ -36,7 +36,7 @@ export function StatsPage() {
 
   const maxDayCalories = useMemo(() => {
     if (!data) return 1;
-    return Math.max(...Object.values(data.calories_by_day), 1);
+    return Math.max(...Object.values(data.calories_by_day ?? {}), 1);
   }, [data]);
 
   return (
@@ -68,7 +68,7 @@ export function StatsPage() {
           <section className="panel">
             <h2>Калории по дням</h2>
             <div className="bar-list">
-              {Object.entries(data.calories_by_day).map(([day, calories]) => (
+              {Object.entries(data.calories_by_day ?? {}).map(([day, calories]) => (
                 <div className="bar-row" key={day}>
                   <span>{day}</span>
                   <div className="bar-track"><div className="bar-fill" style={{ width: `${Math.max((calories / maxDayCalories) * 100, 3)}%` }} /></div>
@@ -84,7 +84,7 @@ export function StatsPage() {
               {mealTypes.map((type) => (
                 <article className={`summary-card meal-type-surface meal-type-surface--${type}`} key={type}>
                   <span>{formatMealType(type)}</span>
-                  <strong>{formatCalories(data.calories_by_meal_type[type] ?? 0)}</strong>
+                  <strong>{formatCalories(data.calories_by_meal_type?.[type] ?? 0)}</strong>
                 </article>
               ))}
             </div>
@@ -94,13 +94,13 @@ export function StatsPage() {
             <div className="panel">
               <h2>Частые продукты</h2>
               <ol className="rank-list">
-                {data.top_products_by_frequency.map(([name, count]) => <li key={name}><span>{name}</span><strong>{count}</strong></li>)}
+                {(data.top_products_by_frequency ?? []).map(([name, count]) => <li key={name}><span>{name}</span><strong>{count}</strong></li>)}
               </ol>
             </div>
             <div className="panel">
               <h2>Топ по калориям</h2>
               <ol className="rank-list">
-                {data.top_products_by_calories.map((item) => <li key={item.product_name}><span>{item.product_name}</span><strong>{formatCalories(item.calories)}</strong></li>)}
+                {(data.top_products_by_calories ?? []).map((item) => <li key={item.product_name}><span>{item.product_name}</span><strong>{formatCalories(item.calories)}</strong></li>)}
               </ol>
             </div>
           </section>

@@ -58,9 +58,9 @@ export function DayPage() {
               <h2>{formatCalories(data.total_calories)}</h2>
             </div>
           </section>
-          {data.meals.length ? (
+          {data.meals?.length ? (
             <div className="meal-grid">
-              {data.meals.map((meal) => (
+              {(data.meals ?? []).map((meal) => (
                 <MealCard key={meal.id} meal={meal} onEdit={() => {}} onDelete={() => {}} />
               ))}
             </div>

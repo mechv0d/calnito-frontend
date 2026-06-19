@@ -139,7 +139,7 @@ export function HomePage() {
         {mealTypes.map((type) => (
           <article className={`summary-card meal-type-surface meal-type-surface--${type}`} key={type}>
             <span>{formatMealType(type)}</span>
-            <strong>{formatCalories(summary?.by_meal_type[type] ?? 0)}</strong>
+            <strong>{formatCalories(summary?.by_meal_type?.[type] ?? 0)}</strong>
           </article>
         ))}
       </section>
@@ -150,7 +150,7 @@ export function HomePage() {
           <span className="muted">{summary?.meals_count ?? 0} записей</span>
         </div>
 
-        {summary?.meals.length ? (
+        {summary?.meals?.length ? (
           mealTypes.map((type) => {
             const meals = groupedMeals.get(type) ?? [];
             if (!meals.length) return null;

@@ -1,5 +1,6 @@
 import type { ApiClient } from './client';
 import type { DayMealsResponse, Meal, MealsRangeResponse, MealUpdateRequest, TodaySummaryResponse } from '../types/api';
+import { normalizeDayMeals, normalizeTodaySummary } from './normalizers';
 
 export interface CreateMealPayload {
   description: string;
@@ -19,11 +20,13 @@ export async function createMeal(api: ApiClient, payload: CreateMealPayload): Pr
 }
 
 export async function getTodaySummary(api: ApiClient): Promise<TodaySummaryResponse> {
-  return api.request<TodaySummaryResponse>('/meals/today');
+  const payload = await api.request<unknown>('/meals/today');
+  return normalizeTodaySummary(payload);
 }
 
 export async function getMealsByDay(api: ApiClient, date: string): Promise<DayMealsResponse> {
-  return api.request<DayMealsResponse>(`/meals/by-day?date=${encodeURIComponent(date)}`);
+  const payload = await api.request<unknown>(`/meals/by-day?date=${encodeURIComponent(date)}`);
+  return normalizeDayMeals(payload);
 }
 
 export async function getMealsRange(api: ApiClient, dateFrom: string, dateTo: string): Promise<MealsRangeResponse> {
