@@ -111,7 +111,7 @@ export function HomePage() {
     <div className="home-page page-stack">
       <header className="home-hero">
         <div className="home-hero__copy">
-          <p className="eyebrow">Сегодня · {formatter.format(new Date(summary?.date || ''))}</p>
+          <p className="eyebrow">Сегодня · {formatter.format(new Date())}</p>
           <h1>{formatCalories(summary?.total_calories)} за день</h1>
           <p className="muted">Коротко опишите вашу еду или приложите фото с пояснениями.</p>
         </div>
