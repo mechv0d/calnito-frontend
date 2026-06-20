@@ -13,15 +13,16 @@ interface MealCardProps {
 
 export function MealCard({ meal, onEdit, onDelete }: MealCardProps) {
   const [expanded, setExpanded] = useState(false);
-  const hasPhoto = Boolean(meal.photo?.signed_url);
+  const photoUrl = meal.photo?.signed_url;
+  const hasPhoto = Boolean(photoUrl);
   const collapsedItemsCount = hasPhoto ? 1 : 3;
   const hasHiddenItems = meal.items.length > collapsedItemsCount;
   const visibleItems = expanded || !hasHiddenItems ? meal.items : meal.items.slice(0, collapsedItemsCount);
 
   return (
     <article className={`meal-card${hasPhoto ? ' meal-card--with-photo' : ' meal-card--without-photo'}${expanded ? ' meal-card--expanded' : ''}`}>
-      {hasPhoto ? (
-        <img className="meal-card__image" src={meal.photo.signed_url} alt={meal.description} loading="lazy" />
+      {photoUrl ? (
+        <img className="meal-card__image" src={photoUrl} alt={meal.description} loading="lazy" />
       ) : null}
       <div className="meal-card__content">
         <div className="meal-card__top">
@@ -63,7 +64,7 @@ export function MealCard({ meal, onEdit, onDelete }: MealCardProps) {
               onClick={() => setExpanded(false)}
               aria-expanded={true}
             >
-              <ChevronUp size={24} /> 
+              <ChevronUp size={24} />
             </button>
           ) : null}
         </div>
