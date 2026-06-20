@@ -1,6 +1,9 @@
+import { useState } from 'react';
+
 import { formatCalories, formatDateTime, formatWeight } from '../../lib/format';
 import type { Meal } from '../../types/api';
 import { MealTypeBadge } from './MealTypeBadge';
+import { ChevronUp } from 'lucide-react';
 
 interface MealCardProps {
   meal: Meal;
@@ -9,9 +12,15 @@ interface MealCardProps {
 }
 
 export function MealCard({ meal, onEdit, onDelete }: MealCardProps) {
+  const [expanded, setExpanded] = useState(false);
+  const hasPhoto = Boolean(meal.photo?.signed_url);
+  const collapsedItemsCount = hasPhoto ? 1 : 3;
+  const hasHiddenItems = meal.items.length > collapsedItemsCount;
+  const visibleItems = expanded || !hasHiddenItems ? meal.items : meal.items.slice(0, collapsedItemsCount);
+
   return (
-    <article className="meal-card">
-      {meal.photo?.signed_url ? (
+    <article className={`meal-card${hasPhoto ? ' meal-card--with-photo' : ' meal-card--without-photo'}${expanded ? ' meal-card--expanded' : ''}`}>
+      {hasPhoto ? (
         <img className="meal-card__image" src={meal.photo.signed_url} alt={meal.description} loading="lazy" />
       ) : null}
       <div className="meal-card__content">
@@ -25,15 +34,39 @@ export function MealCard({ meal, onEdit, onDelete }: MealCardProps) {
           <span>{formatWeight(meal.totals.total_weight_g)}</span>
           <span>{meal.totals.products_count} продуктов</span>
         </div>
-        <ul className="item-list">
-          {meal.items.map((item, index) => (
-            <li key={`${item.product_name}-${index}`}>
-              <span>{item.product_name}</span>
-              <span>{formatWeight(item.portion_g)}</span>
-              <span>{formatCalories(item.calories)}</span>
-            </li>
-          ))}
-        </ul>
+        <div className={`meal-card__items${expanded ? ' meal-card__items--expanded' : ''}`}>
+          <ul className="item-list">
+            {visibleItems.map((item, index) => (
+              <li key={`${item.product_name}-${index}`}>
+                <span>{item.product_name}</span>
+                <span>{formatWeight(item.portion_g)}</span>
+                <span>{formatCalories(item.calories)}</span>
+              </li>
+            ))}
+          </ul>
+
+          {hasHiddenItems && !expanded ? (
+            <button
+              className="meal-card__items-fade"
+              type="button"
+              onClick={() => setExpanded(true)}
+              aria-expanded={false}
+            >
+              Показать ещё
+            </button>
+          ) : null}
+
+          {hasHiddenItems && expanded ? (
+            <button
+              className="meal-card__items-collapse"
+              type="button"
+              onClick={() => setExpanded(false)}
+              aria-expanded={true}
+            >
+              <ChevronUp size={24} /> 
+            </button>
+          ) : null}
+        </div>
         <div className="card-actions">
           <button className="button button--secondary" onClick={() => onEdit(meal)}>Править</button>
           <button className="button button--danger" onClick={() => onDelete(meal.id)}>Удалить</button>

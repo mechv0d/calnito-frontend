@@ -1,12 +1,13 @@
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 import { FormEvent, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../../app/providers/AuthProvider';
 import { useToast } from '../../app/providers/ToastProvider';
 import { auth } from '../../lib/firebase';
-import { getErrorMessage } from '../../lib/errors';
+import { getAuthErrorMessage } from '../../lib/errors';
 import { AuthShell } from './AuthShell';
+import { VERIFY_EMAIL_RESEND_COOLDOWN_SECONDS, VERIFY_EMAIL_RESEND_COOLDOWN_STORAGE_KEY } from './verifyEmailCooldown';
 
 export function RegisterPage() {
   const { user } = useAuth();
@@ -14,6 +15,7 @@ export function RegisterPage() {
   const { showToast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [formError, setFormError] = useState('');
   const [loading, setLoading] = useState(false);
 
   if (user) {
@@ -22,20 +24,30 @@ export function RegisterPage() {
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
+    setFormError('');
     setLoading(true);
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
-      showToast('Аккаунт создан', 'success');
-      navigate('/', { replace: true });
+      const credential = await createUserWithEmailAndPassword(auth, email, password);
+      try {
+        await sendEmailVerification(credential.user);
+        window.localStorage.setItem(
+          VERIFY_EMAIL_RESEND_COOLDOWN_STORAGE_KEY,
+          String(Date.now() + VERIFY_EMAIL_RESEND_COOLDOWN_SECONDS * 1000),
+        );
+        showToast('Аккаунт создан. Проверь email для подтверждения', 'success');
+      } catch {
+        showToast('Аккаунт создан, но письмо подтверждения не отправилось', 'error');
+      }
+      navigate('/verify-email', { replace: true });
     } catch (error) {
-      showToast(getErrorMessage(error), 'error');
+      setFormError(getAuthErrorMessage(error));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <AuthShell title="Регистрация" subtitle="Создай аккаунт и начни записывать еду текстом или фото.">
+    <AuthShell title="Регистрация" subtitle="Создай аккаунт и начни записывать свою еду.">
       <form className="form" onSubmit={handleSubmit}>
         <label>
           Email
@@ -45,6 +57,7 @@ export function RegisterPage() {
           Пароль
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} autoComplete="new-password" />
         </label>
+        {formError && <p className="form-error" role="alert">{formError}</p>}
         <button className="button button--primary" disabled={loading}>
           {loading ? 'Создаем...' : 'Создать аккаунт'}
         </button>

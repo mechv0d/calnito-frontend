@@ -18,6 +18,19 @@ export function StatsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const formatDayAndMonth = (dateString: string): string => {
+  if (!dateString) return '';
+  
+  const date = new Date(dateString);
+  
+  // undefined автоматом подтянет язык из браузера юзера
+  return new Intl.DateTimeFormat(undefined, {
+    day: 'numeric',
+    month: 'long' // Выведет "июня", "June", "Juni" и т.д.
+  }).format(date);
+};
+
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -70,7 +83,7 @@ export function StatsPage() {
             <div className="bar-list">
               {Object.entries(data.calories_by_day ?? {}).map(([day, calories]) => (
                 <div className="bar-row" key={day}>
-                  <span>{day}</span>
+                  <span>{formatDayAndMonth(day)}</span>
                   <div className="bar-track"><div className="bar-fill" style={{ width: `${Math.max((calories / maxDayCalories) * 100, 3)}%` }} /></div>
                   <strong>{formatCalories(calories)}</strong>
                 </div>

@@ -5,6 +5,7 @@ import { normalizeDayMeals, normalizeTodaySummary } from './normalizers';
 export interface CreateMealPayload {
   description: string;
   photo?: File | null;
+  photos?: File[];
 }
 
 export async function createMeal(api: ApiClient, payload: CreateMealPayload): Promise<Meal> {
@@ -12,6 +13,9 @@ export async function createMeal(api: ApiClient, payload: CreateMealPayload): Pr
   form.set('description', payload.description);
   if (payload.photo) {
     form.set('photo', payload.photo);
+  }
+  for (const photo of payload.photos ?? []) {
+    form.append('photos', photo);
   }
   return api.request<Meal>('/meals', {
     method: 'POST',

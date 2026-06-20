@@ -51,10 +51,10 @@ export function HomePage() {
     return groups;
   }, [summary?.meals]);
 
-  const handleCreate = async (description: string, photo: File | null) => {
+  const handleCreate = async (description: string, photos: File[]) => {
     setSaving(true);
     try {
-      await createMeal(api, { description, photo });
+      await createMeal(api, { description, photo: photos[0] ?? null, photos });
       showToast('Прием пищи добавлен', 'success');
       await load();
     } catch (err) {
@@ -119,7 +119,7 @@ export function HomePage() {
         <MealForm onSubmit={handleCreate} loading={saving} />
 
         <button className="button button--ghost home-hero__recommendations" onClick={handleRecommendations} disabled={recommendationLoading}>
-          {recommendationLoading ? 'Смотрю неделю...' : 'Показать рекомендации'}
+          {recommendationLoading ? 'Собираем данные...' : 'Показать рекомендации'}
         </button>
       </header>
 

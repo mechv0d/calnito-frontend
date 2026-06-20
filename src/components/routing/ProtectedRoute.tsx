@@ -16,5 +16,9 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  if (!user.emailVerified) {
+    return <Navigate to="/verify-email" state={{ from: location }} replace />;
+  }
+
   return <>{children}</>;
 }

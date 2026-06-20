@@ -1,20 +1,19 @@
-import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import { FormEvent, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../../app/providers/AuthProvider';
-import { useToast } from '../../app/providers/ToastProvider';
 import { auth } from '../../lib/firebase';
-import { getErrorMessage } from '../../lib/errors';
+import { getAuthErrorMessage } from '../../lib/errors';
 import { AuthShell } from './AuthShell';
 
 export function LoginPage() {
   const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const { showToast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [formError, setFormError] = useState('');
   const [loading, setLoading] = useState(false);
 
   if (user) {
@@ -25,32 +24,20 @@ export function LoginPage() {
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
+    setFormError('');
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
       navigate(from, { replace: true });
     } catch (error) {
-      showToast(getErrorMessage(error), 'error');
+      setFormError(getAuthErrorMessage(error));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleReset = async () => {
-    if (!email) {
-      showToast('Сначала введи email', 'error');
-      return;
-    }
-    try {
-      await sendPasswordResetEmail(auth, email);
-      showToast('Письмо для сброса пароля отправлено', 'success');
-    } catch (error) {
-      showToast(getErrorMessage(error), 'error');
-    }
-  };
-
   return (
-    <AuthShell title="Вход" subtitle="Авторизуйся через Firebase и веди дневник питания.">
+    <AuthShell title="Вход" subtitle="Авторизуйся и веди дневник питания.">
       <form className="form" onSubmit={handleSubmit}>
         <label>
           Email
@@ -60,10 +47,11 @@ export function LoginPage() {
           Пароль
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
         </label>
+        {formError && <p className="form-error" role="alert">{formError}</p>}
         <button className="button button--primary" disabled={loading}>
           {loading ? 'Входим...' : 'Войти'}
         </button>
-        <button className="button button--ghost" type="button" onClick={handleReset}>Сбросить пароль</button>
+        <Link className="button button--ghost" to="/reset-password" state={{ email }}>Сбросить пароль</Link>
         <p className="muted">Нет аккаунта? <Link to="/register">Зарегистрироваться</Link></p>
       </form>
     </AuthShell>

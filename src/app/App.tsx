@@ -4,6 +4,8 @@ import { AppLayout } from '../components/layout/AppLayout';
 import { ProtectedRoute } from '../components/routing/ProtectedRoute';
 import { LoginPage } from '../features/auth/LoginPage';
 import { RegisterPage } from '../features/auth/RegisterPage';
+import { ResetPasswordPage } from '../features/auth/ResetPasswordPage';
+import { VerifyEmailPage } from '../features/auth/VerifyEmailPage';
 import { DayPage } from '../features/day/DayPage';
 import { HomePage } from '../features/meals/HomePage';
 import { SettingsPage } from '../features/settings/SettingsPage';
@@ -14,6 +16,8 @@ export function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/verify-email" element={<VerifyEmailPage />} />
       <Route
         path="/"
         element={

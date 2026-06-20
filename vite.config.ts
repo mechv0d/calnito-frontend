@@ -1,8 +1,26 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 
-export default defineConfig({
-  plugins: [react()],
+export default defineConfig(({ command }) => ({
+  plugins: [
+    react(),
+    {
+      name: 'calnito-favicon',
+      transformIndexHtml() {
+        return [
+          {
+            tag: 'link',
+            attrs: {
+              rel: 'icon',
+              type: 'image/svg+xml',
+              href: command === 'serve' ? '/favicon-dev.svg' : '/favicon-prod.svg',
+            },
+            injectTo: 'head',
+          },
+        ];
+      },
+    },
+  ],
   server: {
     port: 5173,
     strictPort: true,
@@ -16,4 +34,4 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     globals: true,
   },
-});
+}));
