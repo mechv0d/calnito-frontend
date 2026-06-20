@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 
 import { AppLayout } from '../components/layout/AppLayout';
+import { EmailVerificationRoute } from '../components/routing/EmailVerificationRoute';
 import { ProtectedRoute } from '../components/routing/ProtectedRoute';
 import { LoginPage } from '../features/auth/LoginPage';
 import { RegisterPage } from '../features/auth/RegisterPage';
@@ -16,7 +17,14 @@ export function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
-      <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route
+        path="/reset-password"
+        element={
+          <EmailVerificationRoute>
+            <ResetPasswordPage />
+          </EmailVerificationRoute>
+        }
+      />
       <Route path="/verify-email" element={<VerifyEmailPage />} />
       <Route
         path="/"
