@@ -16,6 +16,8 @@ import { MealCard } from './MealCard';
 import { MealEditModal } from './MealEditModal';
 import { MealForm } from './MealForm';
 
+const homeMealTypeOrder = [...mealTypes].reverse();
+
 export function HomePage() {
   const api = useApi();
   const { showToast } = useToast();
@@ -44,7 +46,7 @@ export function HomePage() {
   }, [load]);
 
   const groupedMeals = useMemo(() => {
-    const groups = new Map(mealTypes.map((type) => [type, [] as Meal[]]));
+    const groups = new Map(homeMealTypeOrder.map((type) => [type, [] as Meal[]]));
     for (const meal of summary?.meals ?? []) {
       groups.get(meal.meal_type)?.push(meal);
     }
@@ -136,7 +138,7 @@ export function HomePage() {
       ) : null}
 
       <section className="summary-grid">
-        {mealTypes.map((type) => (
+        {homeMealTypeOrder.map((type) => (
           <article className={`summary-card meal-type-surface meal-type-surface--${type}`} key={type}>
             <span>{formatMealType(type)}</span>
             <strong>{formatCalories(summary?.by_meal_type?.[type] ?? 0)}</strong>
@@ -151,7 +153,7 @@ export function HomePage() {
         </div>
 
         {summary?.meals?.length ? (
-          mealTypes.map((type) => {
+          homeMealTypeOrder.map((type) => {
             const meals = groupedMeals.get(type) ?? [];
             if (!meals.length) return null;
             return (
