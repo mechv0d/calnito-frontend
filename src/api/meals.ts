@@ -23,9 +23,18 @@ export async function createMeal(api: ApiClient, payload: CreateMealPayload): Pr
   });
 }
 
+let todaySummaryInFlight: Promise<TodaySummaryResponse> | null = null;
+
 export async function getTodaySummary(api: ApiClient): Promise<TodaySummaryResponse> {
-  const payload = await api.request<unknown>('/meals/today');
-  return normalizeTodaySummary(payload);
+  if (!todaySummaryInFlight) {
+    todaySummaryInFlight = api.request<unknown>('/meals/today')
+      .then(normalizeTodaySummary)
+      .finally(() => {
+        todaySummaryInFlight = null;
+      });
+  }
+
+  return todaySummaryInFlight;
 }
 
 export async function getMealsByDay(api: ApiClient, date: string): Promise<DayMealsResponse> {

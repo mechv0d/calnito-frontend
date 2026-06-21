@@ -4,6 +4,7 @@ import { getBrowserTimezone } from '../lib/timezone';
 export type TokenGetter = () => Promise<string>;
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/v1').replace(/\/$/, '');
+const SLOW_REQUEST_WARNING_MS = 1000;
 
 async function parseResponse(response: Response) {
   const contentType = response.headers.get('content-type') || '';
@@ -30,6 +31,7 @@ export class ApiClient {
   constructor(private readonly getToken: TokenGetter) {}
 
   async request<T>(path: string, init: RequestInit = {}): Promise<T> {
+    const started = performance.now();
     const token = await this.getToken();
     const headers = new Headers(init.headers);
 
@@ -39,10 +41,20 @@ export class ApiClient {
     headers.set('Authorization', `Bearer ${token}`);
     headers.set('X-Timezone', getBrowserTimezone());
 
-    const response = await fetch(`${API_BASE_URL}${path}`, {
+    const method = init.method || 'GET';
+    const url = `${API_BASE_URL}${path}`;
+    const response = await fetch(url, {
       ...init,
       headers,
     });
+
+    const elapsedMs = performance.now() - started;
+    if (elapsedMs >= SLOW_REQUEST_WARNING_MS) {
+      const backendMs = response.headers.get('X-Process-Time-Ms');
+      console.warn(
+        `[api] ${method} ${url} took ${elapsedMs.toFixed(0)}ms${backendMs ? `; backend=${backendMs}ms` : ''}`,
+      );
+    }
 
     const payload = await parseResponse(response);
     if (!response.ok) {
