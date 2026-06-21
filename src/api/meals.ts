@@ -1,5 +1,13 @@
 import type { ApiClient } from './client';
-import type { DayMealsResponse, Meal, MealsRangeResponse, MealUpdateRequest, TodaySummaryResponse } from '../types/api';
+import type {
+  DayMealsResponse,
+  ManualMealCreateRequest,
+  Meal,
+  MealsRangeResponse,
+  MealUpdateRequest,
+  ProductSuggestionsResponse,
+  TodaySummaryResponse,
+} from '../types/api';
 import { normalizeDayMeals, normalizeTodaySummary } from './normalizers';
 
 export interface CreateMealPayload {
@@ -23,18 +31,16 @@ export async function createMeal(api: ApiClient, payload: CreateMealPayload): Pr
   });
 }
 
-let todaySummaryInFlight: Promise<TodaySummaryResponse> | null = null;
+export async function createManualMeal(api: ApiClient, payload: ManualMealCreateRequest): Promise<Meal> {
+  return api.request<Meal>('/meals/manual', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
 
 export async function getTodaySummary(api: ApiClient): Promise<TodaySummaryResponse> {
-  if (!todaySummaryInFlight) {
-    todaySummaryInFlight = api.request<unknown>('/meals/today')
-      .then(normalizeTodaySummary)
-      .finally(() => {
-        todaySummaryInFlight = null;
-      });
-  }
-
-  return todaySummaryInFlight;
+  const payload = await api.request<unknown>('/meals/today', { dedupeKey: 'GET:/meals/today' });
+  return normalizeTodaySummary(payload);
 }
 
 export async function getMealsByDay(api: ApiClient, date: string): Promise<DayMealsResponse> {
@@ -57,4 +63,15 @@ export async function deleteMeal(api: ApiClient, mealId: string): Promise<{ ok: 
   return api.request<{ ok: boolean; deleted_id: string }>(`/meals/${mealId}`, {
     method: 'DELETE',
   });
+}
+
+export async function getPopularProducts(
+  api: ApiClient,
+  params: { query?: string; page?: number; pageSize?: number } = {},
+): Promise<ProductSuggestionsResponse> {
+  const query = new URLSearchParams();
+  if (params.query?.trim()) query.set('q', params.query.trim());
+  query.set('page', String(params.page ?? 1));
+  query.set('page_size', String(params.pageSize ?? 20));
+  return api.request<ProductSuggestionsResponse>(`/meals/products/popular?${query.toString()}`);
 }

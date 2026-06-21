@@ -3,8 +3,13 @@ import { getBrowserTimezone } from '../lib/timezone';
 
 export type TokenGetter = () => Promise<string>;
 
+export interface ApiRequestInit extends RequestInit {
+  dedupeKey?: string;
+}
+
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/v1').replace(/\/$/, '');
 const SLOW_REQUEST_WARNING_MS = 1000;
+const inflightRequests = new Map<string, Promise<unknown>>();
 
 async function parseResponse(response: Response) {
   const contentType = response.headers.get('content-type') || '';
@@ -30,21 +35,33 @@ function extractApiMessage(payload: unknown, fallback: string): string {
 export class ApiClient {
   constructor(private readonly getToken: TokenGetter) {}
 
-  async request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  async request<T>(path: string, init: ApiRequestInit = {}): Promise<T> {
+    const { dedupeKey, ...fetchInit } = init;
+    if (dedupeKey) {
+      const existing = inflightRequests.get(dedupeKey);
+      if (existing) return existing as Promise<T>;
+
+      const promise = this.request<T>(path, fetchInit).finally(() => {
+        inflightRequests.delete(dedupeKey);
+      });
+      inflightRequests.set(dedupeKey, promise);
+      return promise;
+    }
+
     const started = performance.now();
     const token = await this.getToken();
-    const headers = new Headers(init.headers);
+    const headers = new Headers(fetchInit.headers);
 
-    if (!(init.body instanceof FormData) && !headers.has('Content-Type')) {
+    if (!(fetchInit.body instanceof FormData) && !headers.has('Content-Type')) {
       headers.set('Content-Type', 'application/json');
     }
     headers.set('Authorization', `Bearer ${token}`);
     headers.set('X-Timezone', getBrowserTimezone());
 
-    const method = init.method || 'GET';
+    const method = fetchInit.method || 'GET';
     const url = `${API_BASE_URL}${path}`;
     const response = await fetch(url, {
-      ...init,
+      ...fetchInit,
       headers,
     });
 

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { getStats } from '../../api/stats';
+import { DatePicker } from '../../components/ui/DatePicker';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { StatsPageSkeleton } from '../../components/ui/Skeleton';
 import { useApi } from '../../hooks/useApi';
-import { formatCalories, formatMealType } from '../../lib/format';
+import { formatCalories, formatDateShort, formatMealType } from '../../lib/format';
 import { getErrorMessage } from '../../lib/errors';
 import { daysAgoISO, todayISO } from '../../lib/timezone';
 import type { StatsResponse } from '../../types/api';
@@ -17,19 +18,6 @@ export function StatsPage() {
   const [data, setData] = useState<StatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const formatDayAndMonth = (dateString: string): string => {
-  if (!dateString) return '';
-  
-  const date = new Date(dateString);
-  
-  // undefined автоматом подтянет язык из браузера юзера
-  return new Intl.DateTimeFormat(undefined, {
-    day: 'numeric',
-    month: 'long' // Выведет "июня", "June", "Juni" и т.д.
-  }).format(date);
-};
-
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -59,9 +47,9 @@ export function StatsPage() {
           <p className="eyebrow">Аналитика</p>
           <h1>Статистика питания</h1>
         </div>
-        <div className="filters">
-          <label>С <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} /></label>
-          <label>По <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} /></label>
+        <div className="filters filters--dates">
+          <DatePicker label="С" value={dateFrom} onChange={setDateFrom} />
+          <DatePicker label="По" value={dateTo} onChange={setDateTo} />
           <button className="button button--secondary" onClick={load}>Обновить</button>
         </div>
       </header>
@@ -83,7 +71,7 @@ export function StatsPage() {
             <div className="bar-list">
               {Object.entries(data.calories_by_day ?? {}).map(([day, calories]) => (
                 <div className="bar-row" key={day}>
-                  <span>{formatDayAndMonth(day)}</span>
+                  <span>{formatDateShort(day)}</span>
                   <div className="bar-track"><div className="bar-fill" style={{ width: `${Math.max((calories / maxDayCalories) * 100, 3)}%` }} /></div>
                   <strong>{formatCalories(calories)}</strong>
                 </div>

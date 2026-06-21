@@ -1,5 +1,6 @@
 import { FormEvent, useMemo, useState } from 'react';
 
+import { DateTimePicker } from '../../components/ui/DateTimePicker';
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '../../lib/timezone';
 import type { Meal, MealItemUpdate, MealType, MealUpdateRequest } from '../../types/api';
 import { mealTypes, MEAL_TYPE_LABELS } from '../../types/api';
@@ -25,7 +26,6 @@ export function MealEditModal({ meal, loading, onClose, onSave }: MealEditModalP
     })),
   );
 
-  const manualTimeAllowed = mealType === 'snacks';
   const totalCalories = useMemo(
     () => items.reduce((sum, item) => sum + (item.portion_g * item.kcal_per_100g) / 100, 0),
     [items],
@@ -36,17 +36,15 @@ export function MealEditModal({ meal, loading, onClose, onSave }: MealEditModalP
     const payload: MealUpdateRequest = {
       description: description.trim(),
       meal_type: mealType,
+      consumed_at: fromDatetimeLocalValue(consumedAt),
       items,
     };
-    if (manualTimeAllowed) {
-      payload.consumed_at = fromDatetimeLocalValue(consumedAt);
-    }
     await onSave(meal.id, payload);
   };
 
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
-      <div className="modal" role="dialog" aria-modal="true" aria-label="Редактирование еды" onMouseDown={(e) => e.stopPropagation()}>
+      <div className="modal modal--meal" role="dialog" aria-modal="true" aria-label="Редактирование еды" onMouseDown={(e) => e.stopPropagation()}>
         <form className="form" onSubmit={handleSubmit}>
           <div className="panel__title-row">
             <div>
@@ -71,16 +69,7 @@ export function MealEditModal({ meal, loading, onClose, onSave }: MealEditModalP
               </select>
             </label>
 
-            {manualTimeAllowed ? (
-              <label>
-                Время приема
-                <input
-                  type="datetime-local"
-                  value={consumedAt}
-                  onChange={(e) => setConsumedAt(e.target.value)}
-                />
-              </label>
-            ) : null}
+            <DateTimePicker label="Дата приема" value={consumedAt} onChange={setConsumedAt} />
           </div>
 
           <ItemsEditor items={items} onChange={setItems} showConfidence={false} />

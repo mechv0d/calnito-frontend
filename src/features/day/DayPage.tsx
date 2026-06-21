@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { getMealsByDay } from '../../api/meals';
+import { DatePicker } from '../../components/ui/DatePicker';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { DayPageSkeleton } from '../../components/ui/Skeleton';
@@ -41,10 +42,7 @@ export function DayPage() {
           <p className="eyebrow">История</p>
           <h1>Еда по дням</h1>
         </div>
-        <label className="date-picker">
-          День
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-        </label>
+        <DatePicker label="День" value={date} onChange={setDate} />
       </header>
 
       {loading ? <DayPageSkeleton /> : null}

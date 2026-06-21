@@ -88,6 +88,29 @@ export interface MealUpdateRequest {
   items?: MealItemUpdate[];
 }
 
+export interface ManualMealCreateRequest {
+  description: string;
+  meal_type: MealType;
+  consumed_at: string;
+  items: MealItemUpdate[];
+}
+
+export interface ProductSuggestion {
+  product_name: string;
+  kcal_per_100g: number;
+  times_used: number;
+  average_portion_g: number;
+  last_used_at: string | null;
+}
+
+export interface ProductSuggestionsResponse {
+  items: ProductSuggestion[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_next: boolean;
+}
+
 export interface StatsResponse {
   period: {
     date_from: string;
@@ -111,6 +134,15 @@ export interface StatsResponse {
   top_products_by_calories: Array<{ product_name: string; calories: number }>;
 }
 
+export interface RecommendationLimitResponse {
+  used: number;
+  limit: number;
+  remaining: number;
+  week_key: string;
+}
+
+export type RecommendationKind = 'general' | 'next_meal';
+
 export interface RecommendationResponse {
   text: string;
   meals_analyzed: number;
@@ -118,6 +150,9 @@ export interface RecommendationResponse {
     from: string;
     to: string;
   };
+  kind?: RecommendationKind;
+  title?: string | null;
+  limit?: RecommendationLimitResponse | null;
 }
 
 export interface UserProfileResponse {
