@@ -1406,6 +1406,8 @@ select {
   font-size: 0.875rem;
 }
 .recommendation-actions {
+  position: relative;
+  z-index: 30;
   display: flex;
   justify-content: center;
   gap: 9px;
@@ -1784,5 +1786,210 @@ select {
   .modal-backdrop .modal {
     margin: 0;
     max-height: calc(100dvh - 20px);
+  }
+}
+
+/* Custom split button used by the next-meal recommendation control */
+.split-select-button {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: stretch;
+  min-height: 38px;
+  max-width: 100%;
+  isolation: isolate;
+}
+
+.split-select-button--open {
+  z-index: 120;
+}
+
+.split-select-button__action,
+.split-select-button__toggle {
+  border: 1px solid var(--border);
+  color: #bdbdbd;
+  background: transparent;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    transform 150ms ease,
+    border-color 150ms ease,
+    background 150ms ease,
+    color 150ms ease,
+    opacity 150ms ease;
+}
+
+.split-select-button__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 190px;
+  padding: 0 18px;
+  border-radius: 999px 0 0 999px;
+  white-space: nowrap;
+}
+
+.split-select-button__toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 104px;
+  margin-left: -1px;
+  padding: 0 9px 0 10px;
+  border-radius: 0 999px 999px 0;
+  border-left-color: rgba(255,255,255,0.08);
+}
+
+.split-select-button__selected {
+  max-width: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.split-select-button__chevron {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 160ms ease;
+}
+
+.split-select-button--open .split-select-button__chevron {
+  transform: rotate(180deg);
+}
+
+.split-select-button:not(.split-select-button--disabled) .split-select-button__action:hover,
+.split-select-button:not(.split-select-button--disabled) .split-select-button__toggle:hover,
+.split-select-button--open .split-select-button__toggle {
+  border-color: var(--border-strong);
+  background: #151515;
+  color: #ffffff;
+}
+
+.split-select-button:not(.split-select-button--disabled) .split-select-button__action:active,
+.split-select-button:not(.split-select-button--disabled) .split-select-button__toggle:active {
+  transform: translateY(1px);
+}
+
+.split-select-button--disabled .split-select-button__action,
+.split-select-button--disabled .split-select-button__toggle {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.split-select-button__menu {
+  position: absolute;
+  top: calc(100% + 9px);
+  right: 0;
+  z-index: 130;
+  pointer-events: auto;
+  width: min(260px, calc(100vw - 32px));
+  max-height: 310px;
+  overflow: auto;
+  padding: 7px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background:
+    radial-gradient(circle at 20% 0%, rgba(255,255,255,0.08), transparent 40%),
+    rgba(14,14,14,0.98);
+  box-shadow: 0 24px 70px rgba(0,0,0,0.58), inset 0 1px 0 rgba(255,255,255,0.06);
+  backdrop-filter: blur(18px);
+  animation: dropdownPop 140ms cubic-bezier(.2,.8,.2,1) both;
+}
+
+.split-select-button__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  color: #ececec;
+  background: transparent;
+  font-size: 0.86rem;
+  font-weight: 760;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.split-select-button__option:hover,
+.split-select-button__option:focus-visible {
+  border-color: rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.07);
+  color: #ffffff;
+  outline: none;
+}
+
+.split-select-button__option[aria-selected="true"] {
+  border-color: rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.11);
+  color: #ffffff;
+}
+
+.split-select-button__check {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #111111;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+@keyframes dropdownPop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 620px) {
+  .split-select-button,
+  .home-hero__next-meal {
+    width: 100%;
+  }
+
+  .split-select-button__action {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding-inline: 14px;
+  }
+
+  .split-select-button__toggle {
+    flex: 0 0 auto;
+    min-width: 98px;
+    padding-inline: 8px;
+  }
+
+  .split-select-button__menu {
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-height: min(330px, 52vh);
+    border-radius: 22px;
+  }
+
+  .split-select-button__option {
+    min-height: 44px;
+    font-size: 0.92rem;
   }
 }

@@ -7,6 +7,7 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { HomePageSkeleton, RecommendationSkeleton } from '../../components/ui/Skeleton';
 import { MarkdownText } from '../../components/ui/MarkdownText';
+import { SplitSelectButton } from '../../components/ui/SplitSelectButton';
 import { formatCalories, formatMealType } from '../../lib/format';
 import { getErrorMessage } from '../../lib/errors';
 import { yesterdayISO } from '../../lib/timezone';
@@ -19,6 +20,15 @@ import { MealForm } from './MealForm';
 import { ManualMealModal } from './ManualMealModal';
 
 type RecommendationAction = 'general' | 'next_meal';
+
+const nextMealActionLabels: Record<MealType, string> = {
+  breakfast: 'Что мне съесть на завтрак',
+  second_breakfast: 'Что мне съесть на ланч',
+  lunch: 'Что мне съесть на обед',
+  afternoon_snack: 'Что мне съесть на полдник',
+  dinner: 'Что мне съесть на ужин',
+  snacks: 'Что мне съесть на снеки',
+};
 
 const mealDisplayOrder: MealType[] = [
   'snacks',
@@ -155,7 +165,6 @@ export function HomePage() {
 
   const groupedMeals = useMemo(() => groupMeals(summary?.meals ?? []), [summary?.meals]);
   const previousGroupedMeals = useMemo(() => groupMeals(previousDay?.meals ?? []), [previousDay?.meals]);
-  const nextMealLabel = MEAL_TYPE_LABELS[nextMealType].toLowerCase();
 
   const handleCreate = async (description: string, photos: File[]) => {
     setSaving(true);
@@ -246,7 +255,7 @@ export function HomePage() {
       if (kind === 'general') {
         pushRecommendation(await getRecommendations(api), 'Общая рекомендация');
       } else {
-        pushRecommendation(await getNextMealRecommendation(api, nextMealType), `Что мне съесть на ${nextMealLabel}`);
+        pushRecommendation(await getNextMealRecommendation(api, nextMealType), nextMealActionLabels[nextMealType]);
       }
     } catch (err) {
       showToast(getErrorMessage(err), 'error');
@@ -290,21 +299,18 @@ export function HomePage() {
           <button className="button button--ghost home-hero__recommendations" onClick={() => handleRecommendation('general')} disabled={recommendationLoading !== null}>
             {recommendationLoading === 'general' ? 'Собираем данные...' : 'Общая рекомендация'}
           </button>
-          <div className="next-meal-picker">
-            <select
-              aria-label="Тип приема пищи для рекомендации"
-              value={nextMealType}
-              onChange={(event) => setNextMealType(event.target.value as MealType)}
-              disabled={recommendationLoading !== null}
-            >
-              {mealTypes.map((type) => (
-                <option value={type} key={type}>{MEAL_TYPE_LABELS[type]}</option>
-              ))}
-            </select>
-            <button className="button button--ghost home-hero__recommendations" onClick={() => handleRecommendation('next_meal')} disabled={recommendationLoading !== null}>
-              {recommendationLoading === 'next_meal' ? 'Думаем...' : 'Что мне съесть'}
-            </button>
-          </div>
+          <SplitSelectButton
+            className="home-hero__next-meal"
+            value={nextMealType}
+            options={mealTypes.map((type) => ({ value: type, label: MEAL_TYPE_LABELS[type] }))}
+            actionLabel={nextMealActionLabels[nextMealType]}
+            loading={recommendationLoading === 'next_meal'}
+            loadingLabel="Думаем..."
+            disabled={recommendationLoading !== null}
+            menuAriaLabel="Выбрать тип приема пищи для рекомендации"
+            onChange={setNextMealType}
+            onAction={() => handleRecommendation('next_meal')}
+          />
         </div>
 
         <div className="manual-entry-cta">
