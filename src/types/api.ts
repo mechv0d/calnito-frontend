@@ -51,6 +51,8 @@ export interface Meal {
   items: MealItem[];
   totals: MealTotals;
   photo: PhotoInfo | null;
+  processing_status?: 'processing' | 'completed' | 'failed';
+  processing_error?: string | null;
 }
 
 export interface TodaySummaryResponse {
@@ -143,6 +145,10 @@ export interface RecommendationLimitResponse {
 
 export type RecommendationKind = 'general' | 'next_meal';
 
+export interface NextMealRecommendationRequest {
+  meal_type: MealType;
+}
+
 export interface RecommendationResponse {
   text: string;
   meals_analyzed: number;
@@ -153,6 +159,22 @@ export interface RecommendationResponse {
   kind?: RecommendationKind;
   title?: string | null;
   limit?: RecommendationLimitResponse | null;
+}
+
+
+export interface RecommendationJobResponse {
+  job_id: string;
+  status: 'processing' | 'completed' | 'failed';
+  kind: RecommendationKind;
+  title?: string | null;
+  text?: string | null;
+  meals_analyzed: number;
+  period: {
+    from?: string;
+    to?: string;
+  };
+  limit?: RecommendationLimitResponse | null;
+  error?: string | null;
 }
 
 export interface UserProfileResponse {

@@ -7,7 +7,7 @@ import { StatsPageSkeleton } from '../../components/ui/Skeleton';
 import { useApi } from '../../hooks/useApi';
 import { formatCalories, formatDateShort, formatMealType } from '../../lib/format';
 import { getErrorMessage } from '../../lib/errors';
-import { daysAgoISO, todayISO } from '../../lib/timezone';
+import { addDaysISO, daysAgoISO, todayISO } from '../../lib/timezone';
 import type { StatsResponse } from '../../types/api';
 import { mealTypes } from '../../types/api';
 
@@ -16,6 +16,14 @@ export function StatsPage() {
   const [dateFrom, setDateFrom] = useState(daysAgoISO(13));
   const [dateTo, setDateTo] = useState(todayISO());
   const [data, setData] = useState<StatsResponse | null>(null);
+  const fromDateQuickActions = useMemo(
+    () => [
+      { label: 'День', value: addDaysISO(dateTo, -1) },
+      { label: 'Неделя', value: addDaysISO(dateTo, -6) },
+      { label: 'Месяц', value: addDaysISO(dateTo, -29) },
+    ],
+    [dateTo],
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,7 +56,7 @@ export function StatsPage() {
           <h1>Статистика питания</h1>
         </div>
         <div className="filters filters--dates">
-          <DatePicker label="С" value={dateFrom} onChange={setDateFrom} />
+          <DatePicker label="С" value={dateFrom} onChange={setDateFrom} quickActions={fromDateQuickActions} />
           <DatePicker label="По" value={dateTo} onChange={setDateTo} />
           <button className="button button--secondary" onClick={load}>Обновить</button>
         </div>

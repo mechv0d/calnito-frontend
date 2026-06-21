@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import { getPopularProducts } from '../../api/meals';
 import { DateTimePicker } from '../../components/ui/DateTimePicker';
@@ -99,9 +100,9 @@ export function ManualMealModal({ loading, onClose, onSave }: ManualMealModalPro
     });
   };
 
-  return (
-    <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
-      <div className="modal modal--meal" role="dialog" aria-modal="true" aria-label="Добавить прием пищи вручную" onMouseDown={(event) => event.stopPropagation()}>
+  return createPortal(
+    <div className="modal-backdrop modal-backdrop--no-scrollbar" role="presentation" onMouseDown={onClose}>
+      <div className="modal modal--meal modal--manual-meal" role="dialog" aria-modal="true" aria-label="Добавить прием пищи вручную" onMouseDown={(event) => event.stopPropagation()}>
         <form className="form" onSubmit={handleSubmit}>
           <div className="panel__title-row">
             <div>
@@ -116,7 +117,7 @@ export function ManualMealModal({ loading, onClose, onSave }: ManualMealModalPro
             <input value={description} onChange={(event) => setDescription(event.target.value)} required />
           </label>
 
-          <div className="form-grid form-grid--two">
+          <div className="form-grid form-grid--two form-grid--meal-meta">
             <label>
               Тип приема
               <select value={mealType} onChange={(event) => setMealType(event.target.value as MealType)}>
@@ -132,7 +133,7 @@ export function ManualMealModal({ loading, onClose, onSave }: ManualMealModalPro
             <div className="panel__title-row">
               <div>
                 <h3>Готовые продукты</h3>
-                <p className="muted">20 самых популярных, поиск срабатывает автоматически.</p>
+                {/* <p className="muted">20 самых популярных, поиск срабатывает автоматически.</p> */}
               </div>
               <span className="pill">{total}</span>
             </div>
@@ -162,6 +163,7 @@ export function ManualMealModal({ loading, onClose, onSave }: ManualMealModalPro
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

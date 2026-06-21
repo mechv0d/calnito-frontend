@@ -1,4 +1,5 @@
 import { FormEvent, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import { DateTimePicker } from '../../components/ui/DateTimePicker';
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '../../lib/timezone';
@@ -42,7 +43,7 @@ export function MealEditModal({ meal, loading, onClose, onSave }: MealEditModalP
     await onSave(meal.id, payload);
   };
 
-  return (
+  return createPortal(
     <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
       <div className="modal modal--meal" role="dialog" aria-modal="true" aria-label="Редактирование еды" onMouseDown={(e) => e.stopPropagation()}>
         <form className="form" onSubmit={handleSubmit}>
@@ -59,7 +60,7 @@ export function MealEditModal({ meal, loading, onClose, onSave }: MealEditModalP
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} required />
           </label>
 
-          <div className="form-grid form-grid--two">
+          <div className="form-grid form-grid--two form-grid--meal-meta">
             <label>
               Тип приема
               <select value={mealType} onChange={(e) => setMealType(e.target.value as MealType)}>
@@ -80,6 +81,7 @@ export function MealEditModal({ meal, loading, onClose, onSave }: MealEditModalP
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

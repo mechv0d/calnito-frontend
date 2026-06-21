@@ -38,6 +38,10 @@ export async function createManualMeal(api: ApiClient, payload: ManualMealCreate
   });
 }
 
+export async function getMeal(api: ApiClient, mealId: string): Promise<Meal> {
+  return api.request<Meal>(`/meals/${mealId}`);
+}
+
 export async function getTodaySummary(api: ApiClient): Promise<TodaySummaryResponse> {
   const payload = await api.request<unknown>('/meals/today', { dedupeKey: 'GET:/meals/today' });
   return normalizeTodaySummary(payload);

@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { getNextMealRecommendation, getRecommendations } from '../../api/recommendations';
-import { createManualMeal, createMeal, deleteMeal, getMealsByDay, getTodaySummary, updateMeal } from '../../api/meals';
+import { createManualMeal, createMeal, deleteMeal, getMeal, getMealsByDay, getTodaySummary, updateMeal } from '../../api/meals';
 import { useToast } from '../../app/providers/ToastProvider';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorState } from '../../components/ui/ErrorState';
@@ -20,6 +20,15 @@ import { ManualMealModal } from './ManualMealModal';
 
 type RecommendationAction = 'general' | 'next_meal';
 
+const mealDisplayOrder: MealType[] = [
+  'snacks',
+  'dinner',
+  'afternoon_snack',
+  'lunch',
+  'second_breakfast',
+  'breakfast',
+];
+
 function getNextMealTypeForLabel(date = new Date()): MealType {
   const minutes = date.getHours() * 60 + date.getMinutes();
   if (minutes < 10 * 60 + 30) return 'breakfast';
@@ -30,12 +39,37 @@ function getNextMealTypeForLabel(date = new Date()): MealType {
   return 'breakfast';
 }
 
+function mealTimeMs(meal: Meal): number {
+  const timestamp = new Date(meal.consumed_at).getTime();
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function sortMealsNewestFirst(meals: Meal[]): Meal[] {
+  return [...meals].sort((left, right) => mealTimeMs(right) - mealTimeMs(left));
+}
+
 function groupMeals(meals: Meal[]) {
   const groups = new Map(mealTypes.map((type) => [type, [] as Meal[]]));
-  for (const meal of meals) {
+  for (const meal of sortMealsNewestFirst(meals)) {
     groups.get(meal.meal_type)?.push(meal);
   }
   return groups;
+}
+
+function upsertMeal(meals: Meal[], meal: Meal): Meal[] {
+  const existingIndex = meals.findIndex((current) => current.id === meal.id);
+  if (existingIndex === -1) return sortMealsNewestFirst([meal, ...meals]);
+  const next = [...meals];
+  next[existingIndex] = meal;
+  return sortMealsNewestFirst(next);
+}
+
+function removeMeal(meals: Meal[], mealId: string): Meal[] {
+  return meals.filter((meal) => meal.id !== mealId);
+}
+
+function isMealProcessing(meal: Meal): boolean {
+  return meal.processing_status === 'processing';
 }
 
 export function HomePage() {
@@ -52,37 +86,91 @@ export function HomePage() {
   const [manualModalOpen, setManualModalOpen] = useState(false);
   const [recommendations, setRecommendations] = useState<RecommendationResponse[]>([]);
   const [recommendationLoading, setRecommendationLoading] = useState<RecommendationAction | null>(null);
+  const [nextMealType, setNextMealType] = useState<MealType>(() => getNextMealTypeForLabel());
+  const pollingMeals = useRef(new Set<string>());
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (options: { showSkeleton?: boolean } = {}) => {
+    if (options.showSkeleton) setLoading(true);
     setError(null);
     try {
-      const today = await getTodaySummary(api);
-      setSummary(today);
-      if (previousDayVisible) {
-        setPreviousDay(await getMealsByDay(api, yesterdayISO()));
-      }
+      setSummary(await getTodaySummary(api));
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
-      setLoading(false);
+      if (options.showSkeleton) setLoading(false);
     }
-  }, [api, previousDayVisible]);
+  }, [api]);
 
   useEffect(() => {
-    void load();
+    void load({ showSkeleton: true });
   }, [load]);
+
+  const refreshPreviousDay = useCallback(async () => {
+    if (!previousDayVisible) return;
+    setPreviousDay(await getMealsByDay(api, yesterdayISO()));
+  }, [api, previousDayVisible]);
+
+  const replaceMealInSummary = useCallback((meal: Meal) => {
+    setSummary((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        meals: upsertMeal(current.meals, meal),
+      };
+    });
+  }, []);
+
+  const pollMealUntilReady = useCallback(async (mealId: string) => {
+    if (pollingMeals.current.has(mealId)) return;
+    pollingMeals.current.add(mealId);
+    try {
+      for (let attempt = 0; attempt < 45; attempt += 1) {
+        await new Promise((resolve) => window.setTimeout(resolve, 1600));
+        const meal = await getMeal(api, mealId);
+        replaceMealInSummary(meal);
+        if (!isMealProcessing(meal)) {
+          if (meal.processing_status === 'failed') {
+            showToast(meal.processing_error || 'Не удалось разобрать прием пищи', 'error');
+          } else {
+            showToast('Прием пищи готов', 'success');
+          }
+          await load();
+          return;
+        }
+      }
+    } catch (err) {
+      showToast(getErrorMessage(err), 'error');
+    } finally {
+      pollingMeals.current.delete(mealId);
+    }
+  }, [api, load, replaceMealInSummary, showToast]);
+
+  useEffect(() => {
+    for (const meal of summary?.meals ?? []) {
+      if (isMealProcessing(meal)) {
+        void pollMealUntilReady(meal.id);
+      }
+    }
+  }, [pollMealUntilReady, summary?.meals]);
 
   const groupedMeals = useMemo(() => groupMeals(summary?.meals ?? []), [summary?.meals]);
   const previousGroupedMeals = useMemo(() => groupMeals(previousDay?.meals ?? []), [previousDay?.meals]);
-  const nextMealLabel = MEAL_TYPE_LABELS[getNextMealTypeForLabel()].toLowerCase();
+  const nextMealLabel = MEAL_TYPE_LABELS[nextMealType].toLowerCase();
 
   const handleCreate = async (description: string, photos: File[]) => {
     setSaving(true);
     try {
-      await createMeal(api, { description, photo: photos[0] ?? null, photos });
-      showToast('Прием пищи добавлен', 'success');
-      await load();
+      const queuedMeal = await createMeal(api, { description, photo: photos[0] ?? null, photos });
+      setSummary((current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          meals_count: current.meals.some((meal) => meal.id === queuedMeal.id) ? current.meals_count : current.meals_count + 1,
+          meals: upsertMeal(current.meals, queuedMeal),
+        };
+      });
+      showToast('Запрос принят. Разбираем прием пищи на сервере.', 'success');
+      void pollMealUntilReady(queuedMeal.id);
     } catch (err) {
       showToast(getErrorMessage(err), 'error');
     } finally {
@@ -111,6 +199,7 @@ export function HomePage() {
       setSelectedMeal(null);
       showToast('Прием пищи обновлен', 'success');
       await load();
+      await refreshPreviousDay();
     } catch (err) {
       showToast(getErrorMessage(err), 'error');
     } finally {
@@ -122,6 +211,15 @@ export function HomePage() {
     if (!window.confirm('Удалить прием пищи?')) return;
     try {
       await deleteMeal(api, mealId);
+      setSummary((current) => current ? {
+        ...current,
+        meals_count: Math.max(current.meals_count - 1, 0),
+        meals: removeMeal(current.meals, mealId),
+      } : current);
+      setPreviousDay((current) => current ? {
+        ...current,
+        meals: removeMeal(current.meals, mealId),
+      } : current);
       showToast('Удалено', 'success');
       await load();
     } catch (err) {
@@ -148,7 +246,7 @@ export function HomePage() {
       if (kind === 'general') {
         pushRecommendation(await getRecommendations(api), 'Общая рекомендация');
       } else {
-        pushRecommendation(await getNextMealRecommendation(api), `Что мне съесть на ${nextMealLabel}`);
+        pushRecommendation(await getNextMealRecommendation(api, nextMealType), `Что мне съесть на ${nextMealLabel}`);
       }
     } catch (err) {
       showToast(getErrorMessage(err), 'error');
@@ -171,7 +269,7 @@ export function HomePage() {
   };
 
   if (loading) return <HomePageSkeleton />;
-  if (error) return <ErrorState message={error} onRetry={load} />;
+  if (error) return <ErrorState message={error} onRetry={() => load({ showSkeleton: true })} />;
 
   const formatter = new Intl.DateTimeFormat(navigator.language, {
     dateStyle: 'full',
@@ -188,15 +286,25 @@ export function HomePage() {
 
         <MealForm onSubmit={handleCreate} loading={saving} />
 
-        
-
         <div className="recommendation-actions">
           <button className="button button--ghost home-hero__recommendations" onClick={() => handleRecommendation('general')} disabled={recommendationLoading !== null}>
             {recommendationLoading === 'general' ? 'Собираем данные...' : 'Общая рекомендация'}
           </button>
-          <button className="button button--ghost home-hero__recommendations" onClick={() => handleRecommendation('next_meal')} disabled={recommendationLoading !== null}>
-            {recommendationLoading === 'next_meal' ? 'Думаем...' : `Что мне съесть на ${nextMealLabel}`}
-          </button>
+          <div className="next-meal-picker">
+            <select
+              aria-label="Тип приема пищи для рекомендации"
+              value={nextMealType}
+              onChange={(event) => setNextMealType(event.target.value as MealType)}
+              disabled={recommendationLoading !== null}
+            >
+              {mealTypes.map((type) => (
+                <option value={type} key={type}>{MEAL_TYPE_LABELS[type]}</option>
+              ))}
+            </select>
+            <button className="button button--ghost home-hero__recommendations" onClick={() => handleRecommendation('next_meal')} disabled={recommendationLoading !== null}>
+              {recommendationLoading === 'next_meal' ? 'Думаем...' : 'Что мне съесть'}
+            </button>
+          </div>
         </div>
 
         <div className="manual-entry-cta">
@@ -238,7 +346,7 @@ export function HomePage() {
         </div>
 
         {summary?.meals?.length ? (
-          mealTypes.map((type) => {
+          mealDisplayOrder.map((type) => {
             const meals = groupedMeals.get(type) ?? [];
             if (!meals.length) return null;
             return (
@@ -269,7 +377,7 @@ export function HomePage() {
             <span className="muted">{previousDay.date} · {formatCalories(previousDay.total_calories)}</span>
           </div>
           {previousDay.meals.length ? (
-            mealTypes.map((type) => {
+            mealDisplayOrder.map((type) => {
               const meals = previousGroupedMeals.get(type) ?? [];
               if (!meals.length) return null;
               return (

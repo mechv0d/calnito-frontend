@@ -83,10 +83,10 @@ export function HomePageSkeleton() {
   );
 }
 
-export function MealCardSkeleton() {
-  return (
-    <article className="meal-card skeleton-meal-card" aria-hidden="true">
-      <SkeletonBlock className="skeleton-meal-image" />
+export function MealCardSkeleton({ compact = false }: { compact?: boolean } = {}) {
+  const content = (
+    <>
+      {!compact ? <SkeletonBlock className="skeleton-meal-image" /> : null}
       <div className="meal-card__content">
         <div className="meal-card__top">
           <SkeletonBlock className="skeleton-line skeleton-line--meal-title" />
@@ -98,8 +98,11 @@ export function MealCardSkeleton() {
           <SkeletonBlock className="skeleton-button-small" />
         </div>
       </div>
-    </article>
+    </>
   );
+
+  if (compact) return <div className="skeleton-meal-card skeleton-meal-card--compact" aria-hidden="true">{content}</div>;
+  return <article className="meal-card skeleton-meal-card" aria-hidden="true">{content}</article>;
 }
 
 export function DayPageSkeleton() {

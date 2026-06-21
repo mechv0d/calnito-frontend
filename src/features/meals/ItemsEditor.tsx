@@ -53,8 +53,9 @@ export function ItemsEditor({ items, onChange, showConfidence = true }: ItemsEdi
               <input type="number" value={item.confidence} min={0} max={1} step="0.01" onChange={(e) => updateItem(index, { confidence: Number(e.target.value) })} required />
             </label>
           ) : null}
-          <button className="button button--danger" type="button" onClick={() => removeItem(index)} disabled={items.length === 1}>
-            ×
+          <button className="button button--danger item-editor-remove" type="button" onClick={() => removeItem(index)} disabled={items.length === 1}>
+            <span className="item-editor-remove__desktop" aria-hidden="true">×</span>
+            <span className="item-editor-remove__mobile">Удалить</span>
           </button>
         </div>
       ))}
